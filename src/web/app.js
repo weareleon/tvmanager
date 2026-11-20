@@ -99,7 +99,9 @@ async function pageChannels() {
     <div class="urls">
       <div class="card url"><div><small>Playlist (M3U)</small><code id="m3u-url">${esc(location.origin)}/iptv/channels.m3u</code></div><button class="ghost" data-copy="m3u-url">Copy</button></div>
       <div class="card url"><div><small>Guide (XMLTV)</small><code id="xmltv-url">${esc(location.origin)}/iptv/xmltv.xml</code></div><button class="ghost" data-copy="xmltv-url">Copy</button></div>
+      <div class="card url" title="In Plex: Settings → Live TV & DVR → Set up Plex DVR → enter this address. See Settings for the full steps."><div><small>Plex tuner address (HDHomeRun)</small><code id="tuner-url">${esc(location.origin)}</code></div><button class="ghost" data-copy="tuner-url">Copy</button></div>
     </div>
+    ${/^(localhost|127\.)/.test(location.hostname) ? `<p class="muted small" style="margin:-8px 0 20px">You're on <code>localhost</code>. Other devices, and Plex on another machine, need this PC's network address instead, e.g. <code>http://192.168.1.20:${esc(location.port || "80")}</code>.</p>` : ""}
     <div class="card table-wrap">
       <table>
         <thead><tr><th>#</th><th>Channel</th><th>Now</th><th class="hide-sm">Next</th><th>Watching</th></tr></thead>
@@ -1502,6 +1504,16 @@ async function pageSettings() {
       <section class="card sec">
         <div class="sec-head"><div><h2>Sessions</h2><p id="sess-info">Loading…</p></div></div>
         <div class="actions" style="padding:0"><button id="signout-others">Sign out other devices</button><button class="ghost" id="signout-here">Sign out</button></div>
+      </section>
+      <section class="card sec">
+        <div class="sec-head"><div><h2>Watch in Plex</h2><p>Plex Live TV only accepts tuners, so tvmanager also acts as an HDHomeRun tuner.</p></div></div>
+        <ol class="steps">
+          <li>In Plex, open <b>Settings → Live TV &amp; DVR → Set up Plex DVR</b>.</li>
+          <li>If tvmanager isn't found automatically, choose <b>Don't see your HDHomeRun device? Enter its network address manually</b> and enter <code>${esc(location.origin)}</code>. Use this PC's network IP if Plex runs on another machine.</li>
+          <li>Continue, then for the guide choose <b>Have an XMLTV guide on your server? Click here to use that instead</b> and enter <code>${esc(location.origin)}/iptv/xmltv.xml</code>.</li>
+          <li>Check the channel matches (each tvmanager channel number maps to its guide entry) and finish.</li>
+        </ol>
+        <p class="muted small" style="margin:0">Plex reloads the guide on its own schedule. After adding channels, use <b>Refresh Guide</b> in Plex's Live TV settings to see them sooner.</p>
       </section>
       <section class="card sec">
         <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide and streams don't need a login, so Jellyfin, TiVimate, VLC and other IPTV players can use them. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>

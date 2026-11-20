@@ -7,6 +7,7 @@ import type { AuthStore } from "./auth";
 import { breakRoutes } from "./api/breaks";
 import { channelRoutes } from "./api/channels";
 import { collectionRoutes } from "./api/collections";
+import { hdhomerunRoutes } from "./api/hdhomerun";
 import { sourceRoutes } from "./api/sources";
 import type { Catalog } from "./catalog/catalog";
 import type { ChannelCfg, Config, ConfigStore } from "./config";
@@ -64,6 +65,7 @@ export function createServer(ctx: Ctx) {
   authRoutes(app, ctx.auth);
 
   const baseUrl = (req: FastifyRequest) => cfg.server.publicUrl?.replace(/\/$/, "") ?? `http://${req.headers.host}`;
+  hdhomerunRoutes(app, cfg, baseUrl);
 
   const nowNext = (ch: ChannelCfg) => {
     const now = Date.now();

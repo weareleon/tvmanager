@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- **Plex Live TV support:** tvmanager now also acts as an HDHomeRun network tuner (`discover.json`, `lineup.json`, `lineup_status.json`, `device.xml`). In Plex, set up a DVR with tvmanager's address and use its XMLTV guide. The device ID stays stable across restarts, and the tuner count and name are configurable.
+- The dashboard shows the Plex tuner address on the Channels page and step-by-step Plex setup on the Settings page.
+- Docs: Plex can't use M3U playlists, so the README no longer listed it as a supported player in 1.0.0's text.
+
 ## 1.0.0
 
 First public release.

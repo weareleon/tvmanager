@@ -243,6 +243,10 @@ const Server = z
     publicUrl: z.string().url().optional(),
     /** Seconds to keep a channel's encoder running after the last viewer leaves. */
     idleSeconds: z.number().int().min(0).default(20),
+    /** How many simultaneous streams the emulated HDHomeRun tuner advertises to Plex. */
+    tuners: z.number().int().min(1).max(32).default(4),
+    /** Name Plex shows for the tuner. */
+    tunerName: z.string().default("tvmanager"),
   })
   .default({});
 
