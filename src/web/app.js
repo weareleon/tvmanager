@@ -1504,7 +1504,7 @@ async function pageSettings() {
         <div class="actions" style="padding:0"><button id="signout-others">Sign out other devices</button><button class="ghost" id="signout-here">Sign out</button></div>
       </section>
       <section class="card sec">
-        <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide and streams don't need a login, so Plex, Jellyfin, TiVimate and VLC can use them. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>
+        <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide and streams don't need a login, so Jellyfin, TiVimate, VLC and other IPTV players can use them. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>
       </section>
     </div>`;
 

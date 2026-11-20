@@ -1,6 +1,6 @@
 # tvmanager
 
-**Turn your media library into real live TV channels.** Point tvmanager at Jellyfin, Emby or a folder of videos, build channels in a web dashboard, and watch them in Plex, Jellyfin, TiVimate, VLC or any IPTV player. It has the things that make it feel like broadcast TV: commercial breaks, "Up next" cards, animated on-screen graphics, countdowns to special events, and schedules down to the day and minute.
+**Turn your media library into real live TV channels.** Point tvmanager at Jellyfin, Emby or a folder of videos, build channels in a web dashboard, and watch them in Jellyfin, TiVimate, VLC or any IPTV player that reads M3U and XMLTV. It has the things that make it feel like broadcast TV: commercial breaks, "Up next" cards, animated on-screen graphics, countdowns to special events, and schedules down to the day and minute.
 
 Inspired by [ErsatzTV](https://github.com/ErsatzTV/ErsatzTV), with more control over how channels look and when things air. Not affiliated with it.
 
@@ -64,7 +64,9 @@ Then open **http://localhost:8420**:
 2. **Media sources → Add source.** For Jellyfin, create an API key under *Dashboard → API Keys*, paste it in, and use *Test connection* to pick libraries.
 3. **Collections → New collection**, e.g. one show, or all movies in the "Comedy" genre.
 4. **Channels → New channel.** Pick what it plays, add schedule blocks, breaks, a watermark and graphics.
-5. In your TV app, add the **playlist** `http://<this-pc>:8420/iptv/channels.m3u` and the **guide** `http://<this-pc>:8420/iptv/xmltv.xml`.
+5. In your TV app, add the **playlist** `http://<this-pc>:8420/iptv/channels.m3u` and the **guide** `http://<this-pc>:8420/iptv/xmltv.xml`. This works in Jellyfin (*Live TV → Tuner devices → M3U Tuner*), TiVimate, VLC, Kodi (IPTV Simple Client) and other M3U players.
+
+> **Plex:** Plex Live TV only accepts network tuners like an HDHomeRun, not M3U playlists, so it can't use tvmanager yet. Built-in tuner emulation for Plex is on the [roadmap](#roadmap).
 
 The default port is 8420, so tvmanager can run next to ErsatzTV (8409).
 
@@ -128,6 +130,7 @@ sources → catalog → schedule rules → playout timeline (saved) → channel 
 
 ## Roadmap
 
+- **Plex Live TV:** HDHomeRun tuner emulation, so Plex can add tvmanager as a tuner
 - **Plex** as a media source
 - **HLS output** and hardware-encoder presets in the dashboard
 - More graphic types and templates
