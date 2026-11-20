@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+- **Watch in the browser:** a public TV page at `/watch` with a channel grid (now with progress, and next), and a live player at `/watch/<number>`:
+  - now/next details, the upcoming guide and a channel list
+  - keyboard controls: ↑/↓ change channel, M mutes, F goes fullscreen
+  - works on phones too
+- No sign-in needed. The page's API only exposes guide data (titles and times), never file paths or settings. Turn it off with `server.publicWatch: false`.
+- Playback uses mpegts.js, bundled and served locally, so it works offline. iPhone and iPad get an "Open in VLC" fallback.
+- The dashboard links to the browser page from the Channels page and Settings.
+
 ## 1.1.0
 
 - **Plex Live TV support:** tvmanager now also acts as an HDHomeRun network tuner (`discover.json`, `lineup.json`, `lineup_status.json`, `device.xml`). In Plex, set up a DVR with tvmanager's address and use its XMLTV guide. The device ID stays stable across restarts, and the tuner count and name are configurable.

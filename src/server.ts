@@ -8,6 +8,7 @@ import { breakRoutes } from "./api/breaks";
 import { channelRoutes } from "./api/channels";
 import { collectionRoutes } from "./api/collections";
 import { hdhomerunRoutes } from "./api/hdhomerun";
+import { watchRoutes } from "./api/watch";
 import { sourceRoutes } from "./api/sources";
 import type { Catalog } from "./catalog/catalog";
 import type { ChannelCfg, Config, ConfigStore } from "./config";
@@ -33,7 +34,7 @@ function xmltvTime(ms: number): string {
   return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())} ${off >= 0 ? "+" : "-"}${pad2(Math.floor(a / 60))}${pad2(a % 60)}`;
 }
 
-interface Programme {
+export interface Programme {
   start: number;
   end: number;
   title: string;
@@ -41,7 +42,7 @@ interface Programme {
 }
 
 /** Collapse a playout into guide entries: filler and slates fold into the programme before them. */
-function guideFor(ch: ChannelCfg, items: PlayoutItem[]): Programme[] {
+export function guideFor(ch: ChannelCfg, items: PlayoutItem[]): Programme[] {
   const out: Programme[] = [];
   for (const i of items) {
     const prev = out.at(-1);
@@ -149,7 +150,8 @@ export function createServer(ctx: Ctx) {
 
   // Dashboard: read per request so edits show up on refresh during development.
   const web = join(dirname(fileURLToPath(import.meta.url)), "web");
-  const ASSETS: Record<string, string> = { "app.js": "text/javascript", "app.css": "text/css" };
+  const ASSETS: Record<string, string> = { "app.js": "text/javascript", "app.css": "text/css", "watch.js": "text/javascript", "watch.css": "text/css" };
+  watchRoutes(app, cfg, playout, guideFor, web);
   app.get("/", async (_req, reply) => {
     reply.type("text/html; charset=utf-8").header("Cache-Control", "no-cache").send(readFileSync(join(web, "index.html"), "utf8"));
   });

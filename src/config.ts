@@ -247,6 +247,8 @@ const Server = z
     tuners: z.number().int().min(1).max(32).default(4),
     /** Name Plex shows for the tuner. */
     tunerName: z.string().default("tvmanager"),
+    /** Public "watch in the browser" pages at /watch (no sign-in). */
+    publicWatch: z.boolean().default(true),
   })
   .default({});
 

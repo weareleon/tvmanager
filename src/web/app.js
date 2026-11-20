@@ -94,7 +94,8 @@ async function pageChannels() {
   view.innerHTML = `
     <div class="page-head">
       <div><h1>Channels</h1><p class="sub">Channels keep their schedule even when nobody is watching. Click one to edit it.</p></div>
-      <a class="btn primary" href="#channel/new" style="background:var(--accent);color:var(--accent-ink);border-color:transparent">New channel</a>
+      <div style="display:flex;gap:8px"><a class="btn" href="/watch" target="_blank" rel="noopener" title="Public page where anyone on your network can watch in the browser, no sign-in">Watch in browser ↗</a>
+      <a class="btn primary" href="#channel/new" style="background:var(--accent);color:var(--accent-ink);border-color:transparent">New channel</a></div>
     </div>
     <div class="urls">
       <div class="card url"><div><small>Playlist (M3U)</small><code id="m3u-url">${esc(location.origin)}/iptv/channels.m3u</code></div><button class="ghost" data-copy="m3u-url">Copy</button></div>
@@ -1516,7 +1517,7 @@ async function pageSettings() {
         <p class="muted small" style="margin:0">Plex reloads the guide on its own schedule. After adding channels, use <b>Refresh Guide</b> in Plex's Live TV settings to see them sooner.</p>
       </section>
       <section class="card sec">
-        <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide and streams don't need a login, so Jellyfin, TiVimate, VLC and other IPTV players can use them. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>
+        <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide, streams and the <a href="/watch" target="_blank" rel="noopener">browser TV page</a> don't need a login, so Jellyfin, TiVimate, VLC, other IPTV players and anyone with a browser can use them. Turn the browser page off with <code>"server": { "publicWatch": false }</code> in config.json. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>
       </section>
     </div>`;
 

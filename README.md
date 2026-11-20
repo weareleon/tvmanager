@@ -66,6 +66,16 @@ Then open **http://localhost:8420**:
 4. **Channels → New channel.** Pick what it plays, add schedule blocks, breaks, a watermark and graphics.
 5. In your TV app, add the **playlist** `http://<this-pc>:8420/iptv/channels.m3u` and the **guide** `http://<this-pc>:8420/iptv/xmltv.xml`. This works in Jellyfin (*Live TV → Tuner devices → M3U Tuner*), TiVimate, VLC, Kodi (IPTV Simple Client) and other M3U players.
 
+### Watching in a browser
+
+Anyone on your network can watch at **`http://<this-pc>:8420/watch`**, with no app and no sign-in:
+- **Channel grid:** what's on now (with progress) and next.
+- **Player:** live video with a now/next panel, the upcoming guide and a channel list. **↑/↓** changes channel, **M** mutes and **F** goes fullscreen.
+
+Playback uses [mpegts.js](https://github.com/xqq/mpegts.js), served by tvmanager itself, so it works without internet. It works in Chrome, Edge and Firefox on desktop and Android. iPhone and iPad Safari can't play live MPEG-TS in the browser, so the page offers an "Open in VLC" link instead. Browsers start videos muted until you tap to unmute.
+
+To turn it off, set `"server": { "publicWatch": false }` in `config.json`.
+
 ### Watching in Plex
 
 Plex Live TV doesn't accept M3U playlists, only network tuners, so tvmanager also acts as an **HDHomeRun tuner**:
@@ -89,6 +99,7 @@ Everything you set in the dashboard is saved to `config.json`. You rarely need t
 | `server.publicUrl` | request host | Base URL written into the playlist, e.g. when behind a reverse proxy |
 | `server.idleSeconds` | `20` | Keep a channel's encoder running this long after the last viewer leaves |
 | `server.tuners` / `server.tunerName` | `4` / `tvmanager` | What the HDHomeRun tuner tells Plex |
+| `server.publicWatch` | `true` | The public browser TV pages at `/watch` |
 | `ffmpeg.ffmpeg` / `ffmpeg.ffprobe` | `ffmpeg` / `ffprobe` | Full paths if they're not on PATH |
 | `ffmpeg.videoEncoder` | `libx264` | `h264_nvenc` (NVIDIA), `h264_qsv` (Intel), `h264_amf` (AMD) |
 | `ffmpeg.width` / `height` / `fps` | `1280` / `720` / `30` | Output format for all channels |
@@ -123,6 +134,8 @@ It prints a new password and signs that user out everywhere. Restart tvmanager a
 | `/iptv/xmltv.xml` | open | TV guide |
 | `/stream/<number>.ts` | open | Live MPEG-TS stream |
 | `/discover.json`, `/lineup.json`, `/lineup_status.json` | open | HDHomeRun tuner emulation (for Plex) |
+| `/watch`, `/watch/<number>` | open | Watch in the browser |
+| `/watch-api/...` | open | Read-only guide data for the watch pages (titles and times only) |
 | `/api/...` | session | Dashboard API |
 
 Anyone who can reach the server can watch, so don't expose port 8420 to the internet unless you mean to. Only signed-in users can change anything.
