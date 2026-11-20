@@ -1,0 +1,31 @@
+{
+  "name": "tvmanager",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Turn your Jellyfin, Emby or local media into live TV channels, with ad breaks, animated broadcast graphics and day-and-time scheduling.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "reset-password": "tsx src/cli/reset-password.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "fastify": "^5.12.8",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itsdefnotleon/tvmanager.git"
+  },
+  "homepage": "https://github.com/itsdefnotleon/tvmanager"
+}

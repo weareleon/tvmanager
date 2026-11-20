@@ -1,0 +1,60 @@
+{
+  "server": { "port": 8420 },
+  "ffmpeg": {
+    "ffmpeg": "C:/ffmpeg/bin/ffmpeg.exe",
+    "ffprobe": "C:/ffmpeg/bin/ffprobe.exe",
+    "videoEncoder": "libx264",
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  },
+  "sources": [
+    { "type": "local", "id": "media", "paths": ["D:/Media"] },
+    {
+      "type": "jellyfin",
+      "id": "jellyfin",
+      "url": "http://localhost:8096",
+      "apiKey": "PASTE-YOUR-JELLYFIN-API-KEY",
+      "libraries": ["Movies", "Shows"],
+      "playback": "auto"
+    }
+  ],
+  "collections": [
+    { "id": "cartoons", "source": "jellyfin", "library": "Shows", "genres": ["Animation"] },
+    { "id": "movies", "source": "jellyfin", "kind": "movie" },
+    { "id": "bumpers", "source": "media", "folder": "Bumpers" }
+  ],
+  "channels": [
+    {
+      "id": "retro",
+      "number": 1,
+      "name": "Retro TV",
+      "watermark": { "image": "D:/Media/Logos/retro.png", "position": "bottom-right", "opacity": 0.8, "scale": 0.1 },
+      "filler": "bumpers",
+      "default": { "type": "collection", "collection": "movies", "order": "shuffle" },
+      "schedule": [
+        {
+          "name": "Saturday Morning Cartoons",
+          "days": ["sat", "sun"],
+          "start": "07:00",
+          "end": "11:00",
+          "content": { "type": "collection", "collection": "cartoons", "order": "sequential" }
+        },
+        {
+          "name": "Weeknight Movie",
+          "days": ["mon", "tue", "wed", "thu", "fri"],
+          "start": "20:00",
+          "end": "23:00",
+          "content": { "type": "collection", "collection": "movies", "order": "shuffle" }
+        },
+        {
+          "name": "New Year's Eve Live",
+          "date": "2026-12-31",
+          "start": "23:00",
+          "end": "00:30",
+          "content": { "type": "restream", "source": "http://example.com/playlist.m3u", "channel": "BBC One", "title": "New Year's Eve Countdown" }
+        }
+      ]
+    }
+  ]
+}
