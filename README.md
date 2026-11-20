@@ -43,7 +43,7 @@ Inspired by [ErsatzTV](https://github.com/ErsatzTV/ErsatzTV), with more control 
 ## Quick start
 
 ```bash
-git clone https://github.com/itsdefnotleon/tvmanager.git
+git clone https://github.com/weareleon/tvmanager.git
 ```
 
 ```bash
