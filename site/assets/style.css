@@ -18,7 +18,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-img { max-width: 100%; display: block; }
+/* height:auto keeps the aspect ratio when the width/height attributes don't match the rendered width. */
+img { max-width: 100%; height: auto; display: block; }
 code { font-family: var(--mono); font-size: .88em; background: var(--panel-2); border: 1px solid var(--border); border-radius: 5px; padding: .08em .35em; }
 .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
 
