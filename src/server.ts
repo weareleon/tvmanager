@@ -8,6 +8,8 @@ import { breakRoutes } from "./api/breaks";
 import { channelRoutes } from "./api/channels";
 import { collectionRoutes } from "./api/collections";
 import { hdhomerunRoutes } from "./api/hdhomerun";
+import { HlsManager } from "./stream/hls";
+import { settingsRoutes } from "./api/settings";
 import { watchRoutes } from "./api/watch";
 import { sourceRoutes } from "./api/sources";
 import type { Catalog } from "./catalog/catalog";
@@ -75,14 +77,16 @@ export function createServer(ctx: Ctx) {
     return { current, next };
   };
 
-  app.get("/iptv/channels.m3u", async (req, reply) => {
+  app.get<{ Querystring: { format?: string } }>("/iptv/channels.m3u", async (req, reply) => {
     const base = baseUrl(req);
+    // ?format=hls lists HLS playlists instead of raw MPEG-TS streams.
+    const url = (n: number) => (req.query.format === "hls" ? `${base}/hls/${n}/index.m3u8` : `${base}/stream/${n}.ts`);
     const lines = [`#EXTM3U url-tvg="${base}/iptv/xmltv.xml" x-tvg-url="${base}/iptv/xmltv.xml"`];
     for (const ch of [...cfg.channels].sort((a, b) => a.number - b.number)) {
       const attrs = [`tvg-id="${ch.id}"`, `tvg-chno="${ch.number}"`, `tvg-name="${esc(ch.name)}"`];
       if (ch.logo) attrs.push(`tvg-logo="${esc(ch.logo)}"`);
       if (ch.group) attrs.push(`group-title="${esc(ch.group)}"`);
-      lines.push(`#EXTINF:-1 ${attrs.join(" ")},${ch.name}`, `${base}/stream/${ch.number}.ts`);
+      lines.push(`#EXTINF:-1 ${attrs.join(" ")},${ch.name}`, url(ch.number));
     }
     reply.type("audio/x-mpegurl; charset=utf-8").send(lines.join("\n") + "\n");
   });
@@ -111,6 +115,23 @@ export function createServer(ctx: Ctx) {
     if (!ch) return reply.code(404).send("No such channel");
     reply.hijack();
     streams.attach(ch, req.raw, reply.raw);
+  });
+
+  // HLS: the playlist starts a segmenter on demand; segments are served from data/hls/<channel>/.
+  const hls = new HlsManager(cfg, streams);
+  app.get<{ Params: { channel: string } }>("/hls/:channel/index.m3u8", async (req, reply) => {
+    const ch = playout.channel(req.params.channel);
+    if (!ch) return reply.code(404).send("No such channel");
+    const text = await hls.playlist(ch);
+    if (!text) return reply.code(503).header("Retry-After", "2").send("Channel is starting, try again in a moment");
+    // Segment names in the playlist are relative, so they resolve against this URL.
+    reply.type("application/vnd.apple.mpegurl").header("Cache-Control", "no-cache, no-store").send(text);
+  });
+  app.get<{ Params: { channel: string; segment: string } }>("/hls/:channel/:segment", async (req, reply) => {
+    const ch = playout.channel(req.params.channel);
+    const file = ch ? hls.segment(ch, req.params.segment) : null;
+    if (!file) return reply.code(404).send("No such segment");
+    reply.type("video/mp2t").header("Cache-Control", "public, max-age=60").send(readFileSync(file));
   });
 
   app.get("/api/channels", async () =>
@@ -147,6 +168,7 @@ export function createServer(ctx: Ctx) {
   collectionRoutes(app, ctx.store, ctx.catalog, cfg.dataDir);
   channelRoutes(app, ctx.store, streams);
   breakRoutes(app, ctx.store, ctx.catalog);
+  settingsRoutes(app, ctx.store);
 
   // Dashboard: read per request so edits show up on refresh during development.
   const web = join(dirname(fileURLToPath(import.meta.url)), "web");

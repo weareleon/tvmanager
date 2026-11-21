@@ -1586,6 +1586,22 @@ async function pageSettings() {
         <div class="sec-head"><div><h2>Sessions</h2><p id="sess-info">Loading…</p></div></div>
         <div class="actions" style="padding:0"><button id="signout-others">Sign out other devices</button><button class="ghost" id="signout-here">Sign out</button></div>
       </section>
+      <section class="card sec" style="grid-column:1/-1">
+        <div class="sec-head"><div><h2>Encoding</h2><p>How channels are encoded. A graphics card encoder takes the load off the CPU, so more channels can run at once.</p></div>
+          <button type="button" id="enc-detect">Test encoders</button></div>
+        <form id="enc-form" class="stack" novalidate>
+          <div id="enc-list" class="enc-list"><div class="muted small">Loading…</div></div>
+          <div class="grid3">
+            <label class="field">Resolution <select name="resolution"></select></label>
+            <label class="field">Frame rate <select name="fps">${[25, 30, 50, 60].map((f) => `<option value="${f}">${f} fps</option>`).join("")}</select></label>
+            <label class="field">Audio <select name="audioBitrate">${[96, 128, 160, 192, 256, 320].map((a) => `<option value="${a}">${a} kbps</option>`).join("")}</select></label>
+          </div>
+          <label class="field">Video bitrate <input type="range" name="videoBitrate" min="1000" max="12000" step="250"><span class="hint" id="vb-hint"></span></label>
+          <div class="form-error" id="enc-err" hidden></div>
+          <div class="actions" style="padding:0;align-items:center"><button type="submit" class="primary">Save encoding</button>
+            <span class="muted small">Applies to each channel the next time it starts, so a stream in progress is never interrupted.</span></div>
+        </form>
+      </section>
       <section class="card sec">
         <div class="sec-head"><div><h2>Watch in Plex</h2><p>Plex Live TV only accepts tuners, so tvmanager also acts as an HDHomeRun tuner.</p></div></div>
         <ol class="steps">
@@ -1597,7 +1613,7 @@ async function pageSettings() {
         <p class="muted small" style="margin:0">Plex reloads the guide on its own schedule. After adding channels, use <b>Refresh Guide</b> in Plex's Live TV settings to see them sooner.</p>
       </section>
       <section class="card sec">
-        <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide, streams and the <a href="/watch" target="_blank" rel="noopener">browser TV page</a> don't need a login, so Jellyfin, TiVimate, VLC, other IPTV players and anyone with a browser can use them. Turn the browser page off with <code>"server": { "publicWatch": false }</code> in config.json. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>
+        <div class="sec-head"><div><h2>Access for TV apps</h2><p>The playlist, guide, streams and the <a href="/watch" target="_blank" rel="noopener">browser TV page</a> don't need a login, so Jellyfin, TiVimate, VLC, other IPTV players and anyone with a browser can use them. Turn the browser page off with <code>"server": { "publicWatch": false }</code> in config.json. Players that prefer HLS can use <code>${esc(location.origin)}/iptv/channels.m3u?format=hls</code>. Anyone who can reach this server on your network can watch, but only signed-in users can change anything.</p></div></div>
       </section>
     </div>`;
 
@@ -1650,6 +1666,67 @@ async function pageSettings() {
   };
   $("#signout-here").onclick = signOut;
   load().catch((e) => toast(e.message));
+  loadEncoding().catch((e) => toast(e.message));
+}
+
+/* ---- encoding settings ---- */
+async function loadEncoding() {
+  const form = $("#enc-form");
+  const st = await api("GET", "/api/settings/encoding");
+  let selected = st.current.videoEncoder;
+  const results = () => st.encoders?.results ?? null;
+  const renderList = () => {
+    const res = results();
+    $("#enc-list").innerHTML = st.known.map((e) => {
+      const r = res?.find((x) => x.id === e.id);
+      const status = !r ? `<span class="muted">not tested yet</span>`
+        : r.works ? `<span style="color:var(--ok)">✓ works · ${r.fps} fps at 720p</span>`
+        : `<span style="color:var(--err)" title="${esc(r.error)}">✗ not available on this PC</span>`;
+      const disabled = r && !r.works && e.id !== selected;
+      return `<label class="enc ${e.id === selected ? "on" : ""} ${disabled ? "off" : ""}">
+        <input type="radio" name="videoEncoder" value="${e.id}" ${e.id === selected ? "checked" : ""} ${disabled ? "disabled" : ""}>
+        <span><b>${esc(e.label)}</b><span class="hint">${esc(e.hint)}</span><span class="small">${status}</span></span></label>`;
+    }).join("");
+  };
+  form.resolution.innerHTML = st.resolutions.map((r) => `<option value="${r.id}" ${r.height === st.current.height ? "selected" : ""}>${r.id} (${r.width}×${r.height})</option>`).join("");
+  form.fps.value = String(st.current.fps);
+  form.audioBitrate.value = String(parseInt(st.current.audioBitrate, 10));
+  form.videoBitrate.value = String(parseInt(st.current.videoBitrate, 10));
+  const vbHint = () => {
+    const kb = Number(form.videoBitrate.value);
+    const suggest = { "480p": 1500, "720p": 3500, "1080p": 6000 }[form.resolution.value];
+    $("#vb-hint").textContent = `${(kb / 1000).toFixed(kb % 1000 ? 2 : 0)} Mbps per channel · about ${suggest / 1000} Mbps suits ${form.resolution.value}`;
+  };
+  vbHint();
+  renderList();
+  form.oninput = (e) => {
+    if (e.target.name === "videoEncoder") { selected = e.target.value; renderList(); }
+    vbHint();
+  };
+  const detect = async () => {
+    const btn = $("#enc-detect");
+    btn.disabled = true;
+    btn.textContent = "Testing… (about 10s)";
+    try { st.encoders = await api("POST", "/api/settings/encoding/detect"); renderList(); }
+    catch (e) { toast(e.message); }
+    finally { btn.disabled = false; btn.textContent = "Test encoders again"; }
+  };
+  $("#enc-detect").onclick = detect;
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const err = $("#enc-err");
+    err.hidden = true;
+    const r = results()?.find((x) => x.id === selected);
+    if (r && !r.works) { err.textContent = `${r.label} doesn't work on this PC: ${r.error}`; err.hidden = false; return; }
+    try {
+      await api("PUT", "/api/settings/encoding", {
+        videoEncoder: selected, resolution: form.resolution.value, fps: Number(form.fps.value),
+        videoBitrate: Number(form.videoBitrate.value), audioBitrate: Number(form.audioBitrate.value),
+      });
+      toast("Encoding saved");
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+  };
+  if (!st.encoders) detect(); // first visit: find out what this PC can do
 }
 
 showAuth();

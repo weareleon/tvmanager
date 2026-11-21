@@ -61,6 +61,8 @@ let infoTimer, osdTimer, retryTimer;
 
 function destroyPlayer() {
   clearTimeout(retryTimer);
+  const v = $("#video");
+  if (v?.getAttribute("src")) { v.onerror = null; v.removeAttribute("src"); v.load(); }
   if (!player) return;
   try { player.pause(); player.unload(); player.detachMediaElement(); player.destroy(); } catch { /* already gone */ }
   player = null;
@@ -87,10 +89,20 @@ function startStream(n) {
   const video = $("#video");
   // Absolute: mpegts.js fetches from a Web Worker, which can't resolve page-relative URLs.
   const url = new URL(`/stream/${n}.ts`, location.href).href;
+  if (!canPlay() && video.canPlayType("application/vnd.apple.mpegurl")) {
+    // Safari on iPhone/iPad: no MSE for live MPEG-TS, but it plays HLS natively.
+    setStatus("Tuning in…");
+    video.src = `/hls/${n}/index.m3u8`;
+    video.muted = store.get("tvm-muted") !== "0";
+    video.play().catch(() => { video.muted = true; video.play().catch(() => {}); updateMuteUi(); });
+    video.onerror = () => { setStatus("Reconnecting…"); retryTimer = setTimeout(() => { if (current === n) startStream(n); }, 3000); };
+    updateMuteUi();
+    return;
+  }
   if (!canPlay()) {
     const abs = url;
     $("#stage").insertAdjacentHTML("beforeend", `<div class="p-fallback"><div>
-      <p>This browser can't play live TV directly (common on iPhone and iPad). Open the channel in VLC instead:</p>
+      <p>This browser can't play live TV directly. Open the channel in VLC instead:</p>
       <a class="btn" href="vlc://${esc(abs)}">Open in VLC</a><code>${esc(abs)}</code></div></div>`);
     return;
   }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+- **HLS output:** every channel is also available as HLS at `/hls/<number>/index.m3u8`, plus a playlist variant at `/iptv/channels.m3u?format=hls`.
+  - A segmenter starts on the first request, copies the channel's stream into 4-second segments without re-encoding, and stops about 45 seconds after the last request.
+  - **iPhone and iPad:** the browser TV page now plays channels in Safari using HLS, instead of only offering VLC.
+- **Encoding settings in the dashboard** (*Settings → Encoding*):
+  - **Encoder tests:** a real test encode for each one, so you see what works on your PC and how fast: software x264, NVIDIA NVENC, Intel Quick Sync, AMD AMF.
+  - **Output options:** resolution (480p/720p/1080p), frame rate, video and audio bitrate.
+  - **Safe changes:** they apply to each channel the next time it starts, so a stream in progress is never interrupted.
+- Intel Quick Sync now gets the NV12 pixel format it needs, and AMD AMF uses its own quality setting.
+
 ## 1.3.0
 
 - **Plex as a media source:** "Sign in with Plex" in the dashboard (Plex's PIN flow, so you never copy a token), then pick a server and libraries.

@@ -354,6 +354,7 @@ export class ConfigStore {
     this.cfg.sources = parsed.sources;
     this.cfg.collections = parsed.collections;
     this.cfg.breaks = parsed.breaks;
+    this.cfg.ffmpeg = parsed.ffmpeg;
     this.cfg.channels = parsed.channels;
     for (const fn of this.listeners) fn();
   }

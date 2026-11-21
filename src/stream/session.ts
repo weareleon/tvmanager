@@ -1,6 +1,9 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import type { ServerResponse } from "node:http";
-import type { ChannelCfg, Config } from "../config";
+import type { Writable } from "node:stream";
+
+/** Anything that can receive the stream: an HTTP response, or a child process stdin. */
+export type Sink = Pick<Writable, "write" | "end" | "destroy" | "writableLength" | "destroyed">;
+import type { ChannelCfg, Config, FfmpegCfg } from "../config";
 import type { PlayoutItem, PlayoutService } from "../schedule/playout";
 import { hhmm, log, sleep } from "../util";
 import { nextEvent } from "../schedule/resolve";
@@ -84,12 +87,14 @@ interface Playing {
  * Output timestamps come from the schedule, so the joined stream is continuous.
  */
 export class ChannelSession {
-  private clients = new Set<ServerResponse>();
+  private clients = new Set<Sink>();
   /** Clients that joined mid-chunk and are waiting for a TS packet boundary. */
-  private joining = new Set<ServerResponse>();
+  private joining = new Set<Sink>();
   private encoders = new Set<Encoder>();
   private running = false;
   private startedAt = 0;
+  /** Encoder settings captured when this session starts, so dashboard changes never alter a running stream mid-way. */
+  private ff!: FfmpegCfg;
   private jobCounter = 0;
   idleTimer: NodeJS.Timeout | null = null;
   readonly id: string;
@@ -117,14 +122,14 @@ export class ChannelSession {
     return this.clients.size + this.joining.size;
   }
 
-  add(res: ServerResponse): void {
+  add(res: Sink): void {
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.idleTimer = null;
     this.joining.add(res);
     if (!this.running) void this.run();
   }
 
-  remove(res: ServerResponse): void {
+  remove(res: Sink): void {
     this.clients.delete(res);
     this.joining.delete(res);
   }
@@ -141,6 +146,7 @@ export class ChannelSession {
   private async run(): Promise<void> {
     this.running = true;
     this.startedAt = Date.now();
+    this.ff = structuredClone(this.cfg.ffmpeg);
     log(this.ch.id, "encoder started");
     let failures = 0;
     let cur: Playing | null = null;
@@ -235,8 +241,8 @@ export class ChannelSession {
     const lastPart = !item.parts || item.part === item.parts - 1;
     const next = programme && lastPart ? this.playout.nextProgramme(this.ch, item.end) : undefined;
     return {
-      W: this.cfg.ffmpeg.width,
-      H: this.cfg.ffmpeg.height,
+      W: this.ff.width,
+      H: this.ff.height,
       jobStart: item.start + seekMs,
       duration,
       itemStart: item.start,
@@ -287,9 +293,9 @@ export class ChannelSession {
   }
 
   private spawn(job: RenderJob): Encoder {
-    const args = buildArgs(job, this.ch, this.cfg.ffmpeg, this.workDir, `${this.ch.id}-${this.jobCounter++ % 4}`);
+    const args = buildArgs(job, this.ch, this.ff, this.workDir, `${this.ch.id}-${this.jobCounter++ % 4}`);
     const enc = new Encoder(
-      this.cfg.ffmpeg.ffmpeg,
+      this.ff.ffmpeg,
       args,
       this.workDir,
       (chunk, offset) => this.broadcast(chunk, offset),

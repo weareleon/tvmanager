@@ -163,7 +163,7 @@ export function buildArgs(job: RenderJob, ch: ChannelCfg, ff: FfmpegCfg, workDir
     }
   }
 
-  f.push(`[${last}]format=yuv420p${paced ? ",realtime" : ""}[vout]`);
+  f.push(`[${last}]format=${ff.videoEncoder === "h264_qsv" ? "nv12" : "yuv420p"}${paced ? ",realtime" : ""}[vout]`);
   if (paced) f.push(`[${audioMap}]arealtime[aout]`);
   a.push("-filter_complex", f.join(";"), "-map", "[vout]", "-map", paced ? "[aout]" : audioMap);
 
@@ -171,6 +171,7 @@ export function buildArgs(job: RenderJob, ch: ChannelCfg, ff: FfmpegCfg, workDir
   a.push("-c:v", enc);
   const preset = ff.preset ?? DEFAULT_PRESET[enc];
   if (preset) a.push("-preset", preset);
+  if (enc === "h264_amf") a.push("-quality", "balanced");
   a.push("-b:v", ff.videoBitrate, "-maxrate", ff.videoBitrate, "-bufsize", bufsize(ff.videoBitrate), "-g", String(fps * 2));
   if (enc === "libx264") a.push("-sc_threshold", "0", "-profile:v", "high");
 
