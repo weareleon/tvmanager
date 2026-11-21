@@ -112,7 +112,7 @@ function banner(g: Builder, ctx: GfxContext, accent: string, a: number, b: numbe
 }
 
 /** Two stacked lines (small accent label above a bigger value) pinned to a corner. */
-function cornerPair(g: Builder, ctx: GfxContext, corner: string, accent: string, label: string | undefined, value: { content: string; expand?: boolean; enable?: string }[], margin: number) {
+function cornerPair(g: Builder, ctx: GfxContext, corner: string, accent: string, label: string | undefined, value: { content: string; expand?: boolean; enable?: string }[], margin: number, bottomLift = 0) {
   const { H } = ctx;
   const ls = H * 0.026, lb = ls * 0.4;
   const vs = H * 0.05, vb = vs * 0.22;
@@ -120,7 +120,8 @@ function cornerPair(g: Builder, ctx: GfxContext, corner: string, accent: string,
   const top = corner.startsWith("top");
   const x = (border: number) => (right ? `w-tw-${num(margin + border)}` : num(margin + border));
   const labelH = label ? ls + 2 * lb + 4 : 0;
-  const blockTop = top ? margin : H - margin - labelH - (vs + 2 * vb);
+  // Bottom corners sit above the ticker band when there is one.
+  const blockTop = top ? margin : H - margin - bottomLift - labelH - (vs + 2 * vb);
   // The label shows whenever any of the values does (enable expressions are truthy when non-zero).
   const anyEnable = value.every((v) => v.enable) ? value.map((v) => v.enable).join("+") : undefined;
   if (label) g.text({ content: label.toUpperCase(), font: FONT_BOLD, size: ls, color: "white", box: color(accent, 0.95), border: lb, x: x(lb), y: num(blockTop + lb), enable: anyEnable });
@@ -184,13 +185,13 @@ export function graphicsChain(graphics: GraphicCfg[], accent: string, ctx: GfxCo
         cornerPair(g, ctx, gr.position, accent, title, [
           { content: countdownText(r0), expand: true, enable: `between(t,${num(s0)},${num(r0)})` },
           { content: "ON NOW", enable: `between(t,${num(r0)},${num(e0)})` },
-        ], margin);
+        ], margin, ticker ? bandH : 0);
         break;
       }
       case "clock": {
         if (!on(gr)) break;
         const content = gr.format === "12h" ? "%{localtime:%I}:%{localtime:%M} %{localtime:%p}" : "%{localtime:%H}:%{localtime:%M}";
-        cornerPair(g, ctx, gr.position, accent, undefined, [{ content, expand: true }], margin);
+        cornerPair(g, ctx, gr.position, accent, undefined, [{ content, expand: true }], margin, ticker ? bandH : 0);
         break;
       }
       case "ticker":

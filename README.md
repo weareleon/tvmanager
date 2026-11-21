@@ -1,5 +1,7 @@
 # tvmanager
 
+**Website and docs: https://weareleon.github.io/tvmanager/**
+
 **Turn your media library into real live TV channels.** Point tvmanager at Plex, Jellyfin, Emby or a folder of videos, build channels in a web dashboard, and watch them in Plex (as an HDHomeRun tuner), Jellyfin, TiVimate, VLC or any IPTV player that reads M3U and XMLTV. It has the things that make it feel like broadcast TV: commercial breaks, "Up next" cards, animated on-screen graphics, countdowns to special events, and schedules down to the day and minute.
 
 Inspired by [ErsatzTV](https://github.com/ErsatzTV/ErsatzTV), with more control over how channels look and when things air. Not affiliated with it.

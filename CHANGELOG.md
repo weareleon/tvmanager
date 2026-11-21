@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Website:** a project site with a landing page and full docs, published from `site/` to GitHub Pages.
+- **Fix:** with a ticker on, a countdown or clock in a bottom corner overlapped the ticker band. It now sits above it, in both the video and the dashboard preview.
+
 ## 1.4.0
 
 - **HLS output:** every channel is also available as HLS at `/hls/<number>/index.m3u8`, plus a playlist variant at `/iptv/channels.m3u?format=hls`.

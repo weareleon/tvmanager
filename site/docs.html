@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Docs · tvmanager</title>
+<meta name="description" content="How to install tvmanager, connect Plex, Jellyfin, Emby or folders, build channels with schedules, breaks and graphics, and watch them anywhere.">
+<meta name="theme-color" content="#0a0c11">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><span class="dot"></span>tvmanager</a>
+    <nav>
+      <a href="./#features">Features</a>
+      <a class="on" href="docs.html">Docs</a>
+      <a href="https://github.com/weareleon/tvmanager/releases">Releases</a>
+      <a class="btn small" href="https://github.com/weareleon/tvmanager">GitHub</a>
+    </nav>
+    <button class="menu-btn" type="button" aria-label="Contents" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</header>
+
+<div class="docs">
+  <aside class="toc">
+    <h4>Getting started</h4>
+    <a href="#overview">Overview</a>
+    <a href="#install">Install</a>
+    <a href="#first-run">First run</a>
+    <h4>Building channels</h4>
+    <a href="#sources">Media sources</a>
+    <a href="#collections">Collections</a>
+    <a href="#channels">Channels</a>
+    <a href="#scheduling">Scheduling</a>
+    <a href="#breaks">Commercial breaks</a>
+    <a href="#graphics">Graphics and watermark</a>
+    <h4>Watching</h4>
+    <a href="#apps">IPTV apps</a>
+    <a href="#plex-tv">Plex Live TV</a>
+    <a href="#browser">In a browser</a>
+    <a href="#hls">HLS</a>
+    <h4>Running it</h4>
+    <a href="#encoding">Encoding</a>
+    <a href="#users">Users and security</a>
+    <a href="#config">Configuration reference</a>
+    <a href="#endpoints">Endpoints</a>
+    <a href="#updating">Updating</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+  </aside>
+
+  <article class="content">
+    <h1>Documentation</h1>
+    <p class="lead">Everything you need to go from an empty folder to a lineup of live channels.</p>
+
+    <h2 id="overview">Overview</h2>
+    <p>tvmanager reads your media from <b>Plex, Jellyfin, Emby or folders on disk</b>, lets you build <b>channels</b> in a web dashboard, and serves them as live TV:</p>
+    <ul>
+      <li><b>Always on air.</b> Each channel plans about 48 hours ahead from the wall clock, so it is "broadcasting" even when nobody watches. When someone tunes in, playback starts at the right point in whatever is on.</li>
+      <li><b>On-demand encoding.</b> ffmpeg only runs for channels someone is watching, and stops shortly after the last viewer leaves.</li>
+      <li><b>Gapless.</b> Each programme, ad and card is encoded separately and spliced into one continuous stream.</li>
+    </ul>
+    <p>You can watch in IPTV apps (M3U playlist and XMLTV guide), in Plex (as a network tuner), or in any browser.</p>
+
+    <h2 id="install">Install</h2>
+    <h3>Requirements</h3>
+    <ul>
+      <li><b>Node.js 22</b> or newer.</li>
+      <li><b>ffmpeg and ffprobe</b>, a full build that includes the <code>drawtext</code> filter (on Windows, the <a href="https://www.gyan.dev/ffmpeg/builds/">gyan.dev "full" build</a>). Put them on your PATH, or set their paths in <code>config.json</code>.</li>
+      <li>Tested on <b>Windows</b>. Linux and macOS should work, but set the font paths (see <a href="#config">configuration</a>).</li>
+    </ul>
+    <h3>Steps</h3>
+<pre><code>git clone https://github.com/weareleon/tvmanager.git
+cd tvmanager
+npm install
+npm start</code></pre>
+    <p>tvmanager starts on <b>port 8420</b> and creates an empty <code>config.json</code> on first run. Open <code>http://localhost:8420</code>. If ffmpeg can't be found, the server log says so and tells you how to fix it.</p>
+    <div class="note"><p>The default port is 8420 so tvmanager can run next to ErsatzTV, which uses 8409.</p></div>
+
+    <h2 id="first-run">First run</h2>
+    <p>The first time you open the dashboard it asks you to <b>create an account</b>.</p>
+    <ul>
+      <li><b>On the tvmanager PC itself</b>, a username and password are all you need.</li>
+      <li><b>From another device</b>, or through a reverse proxy, you also need the 6-digit <b>setup code</b> printed in the server log. That stops anyone else on your network from claiming the server before you do.</li>
+    </ul>
+    <p>Then add things in this order: a <a href="#sources">media source</a>, a <a href="#collections">collection</a>, and a <a href="#channels">channel</a>.</p>
+
+    <h2 id="sources">Media sources</h2>
+    <p>Add sources under <b>Media sources → Add source</b>. A scan starts straight away, and the source's card shows how many items it found or what went wrong.</p>
+    <h3>Plex</h3>
+    <ol class="steps-list">
+      <li>Choose <b>Plex</b> and click <b>Sign in with Plex</b>.</li>
+      <li>Approve tvmanager in the Plex window that opens. This is Plex's own sign-in, so your password never reaches tvmanager.</li>
+      <li>Pick a server. tvmanager connects to the first address that answers: this PC, then your network, then remote, then Plex's relay.</li>
+      <li>Tick the libraries to import and click <b>Save</b>.</li>
+    </ol>
+    <h3>Jellyfin and Emby</h3>
+    <ol class="steps-list">
+      <li>Create an API key. In Jellyfin: <b>Dashboard → API Keys → +</b>. In Emby: <b>Settings → Advanced → API Keys</b>.</li>
+      <li>Choose <b>Jellyfin</b> or <b>Emby</b>, enter the server URL (e.g. <code>http://localhost:8096</code>) and the key.</li>
+      <li>Click <b>Test connection</b>, tick the libraries and save.</li>
+    </ol>
+    <h3>Local folders</h3>
+    <p>Choose <b>Local folders</b> and enter one folder per line. Subfolders are included. Files are probed with ffprobe, and names like <code>Show Name - S01E02 - Title.mkv</code> are read as episodes.</p>
+    <h3>Docker, NAS and other machines</h3>
+    <p>tvmanager reads a file directly when this PC can see it, and otherwise streams the original file from the server, with no transcoding. If the server sees files at different paths (for example <code>/media/...</code> inside Docker), open <b>Advanced</b> and add <b>path replacements</b> like <code>/media =&gt; \\nas\media</code>, or set playback to <b>Always stream from the server</b>.</p>
+    <div class="note"><p>Plex tokens and API keys are only added to stream URLs at play time. They never reach the browser, are redacted from logs, and are never written to <code>data/</code>.</p></div>
+
+    <h2 id="collections">Collections</h2>
+    <p>A collection is a group of media for channels to play from, like "all episodes of one show" or "every comedy movie". Under <b>Collections → New collection</b>, pick a source and filter it:</p>
+    <table>
+      <tr><th>Filter</th><th>What it does</th></tr>
+      <tr><td>Library</td><td>Only items from one library (media servers).</td></tr>
+      <tr><td>Type</td><td>Movies, episodes or other videos.</td></tr>
+      <tr><td>Shows</td><td>Only these shows. A searchable list with episode counts.</td></tr>
+      <tr><td>Genres</td><td>Items with any of the selected genres.</td></tr>
+      <tr><td>Folder</td><td>Only files under a folder (local sources).</td></tr>
+      <tr><td>Path contains</td><td>Only files whose path contains some text, e.g. <code>Christmas</code>.</td></tr>
+    </table>
+    <p>The preview on the right shows how many items match, their total runtime, and the order they will play in. Shows play in season and episode order.</p>
+
+    <h2 id="channels">Channels</h2>
+    <p>Create a channel under <b>Channels → New channel</b>. The editor has these sections:</p>
+    <ul>
+      <li><b>Basics:</b> name, number, group and logo URL, as shown in the guide and TV apps.</li>
+      <li><b>Programming:</b> what plays when no schedule block is active (a collection in order or shuffled, a live restream, or nothing), and an optional <b>gap filler</b> collection of short clips.</li>
+      <li><b>Ad breaks</b>, <b>Weekly schedule</b>, <b>Special events</b>, <b>Watermark</b> and <b>On-screen graphics</b>, all described below.</li>
+      <li><b>Coming up:</b> the real timeline for the next 12 hours, updated when you save.</li>
+    </ul>
+    <p>Changes apply immediately. A channel that is being watched picks them up from its next programme.</p>
+
+    <h2 id="scheduling">Scheduling</h2>
+    <h3>Weekly blocks</h3>
+    <p>Add a block, give it a name, pick days and start and end times, and choose what it plays. A block that ends earlier than it starts runs past midnight. The week grid shows every block, and clicking one jumps to its settings.</p>
+    <h3>Special events</h3>
+    <p>Special events are blocks on one date, like New Year's Eve. They beat weekly blocks when they overlap. Each block has a <b>priority</b> if you need finer control: events default to 100, weekly blocks to 10, and the higher number wins.</p>
+    <h3>Hard starts</h3>
+    <p>Blocks start exactly on time. If the next programme won't fit before a block begins, the gap is filled with clips from the channel's gap filler, then an "Up next" screen for whatever is left.</p>
+    <h3>Live restreams</h3>
+    <p>A block can play a live stream instead of a collection: either a direct stream URL, or an M3U playlist plus the channel to pick from it (matched by tvg-id, tvg-name or display name).</p>
+
+    <h2 id="breaks">Commercial breaks</h2>
+    <p>A <b>break style</b> is an ordered list of slots, built under <b>Breaks</b>:</p>
+    <ul>
+      <li><b>Clips</b> from a collection, either a number of clips or "up to N seconds" of them. Use these for ads, promos and bumpers. Clips are picked at random without repeating until the collection runs out.</li>
+      <li><b>"Up next" cards:</b> a lower-third with the next programme's title, episode and start time, over a plain backdrop or a looping background clip. In a mid-roll break the card says "Back to …".</li>
+    </ul>
+    <p>In a channel's <b>Ad breaks</b> section, pick a style and where it goes:</p>
+    <ul>
+      <li><b>Between programmes.</b></li>
+      <li><b>Mid-roll:</b> every N minutes inside programmes longer than M minutes. Cuts snap to the file's <b>chapter markers</b> when it has them, which usually fall on scene changes.</li>
+    </ul>
+    <p>Breaks never push a scheduled block late. Near a block boundary they are shortened or skipped, and a programme drops its mid-roll if that's what it takes to fit. The TV guide shows each programme as one entry, with its breaks included.</p>
+
+    <h2 id="graphics">Graphics and watermark</h2>
+    <p>Graphics are drawn live by the encoder, so they cost almost nothing and appear at the right moment even when you tune in mid-programme. Add them in a channel's <b>On-screen graphics</b> section, which has a live animated preview:</p>
+    <table>
+      <tr><th>Graphic</th><th>What it does</th></tr>
+      <tr><td>Up next banner</td><td>Slides in a set number of seconds before a programme ends, with what's on next and when.</td></tr>
+      <tr><td>Now playing banner</td><td>Shows the programme's title shortly after it starts.</td></tr>
+      <tr><td>Countdown</td><td>Ticks down to the channel's next special event, or to a date and time you pick, then shows ON NOW.</td></tr>
+      <tr><td>Ticker</td><td>Scrolling text along the bottom, with an optional tag like "TONIGHT".</td></tr>
+      <tr><td>Clock</td><td>The current time in a corner, 24-hour or 12-hour.</td></tr>
+    </table>
+    <p>Each graphic can show during programmes only, or during everything including breaks. The <b>accent colour</b> styles every graphic and the break cards.</p>
+    <h3>Watermark</h3>
+    <p>Upload a logo (a PNG with transparency works best), then set its corner, size, opacity and distance from the edge. Animations: <b>fade</b> in and out with each programme, a gentle <b>pulse</b>, or <b>slide</b> in. Animated GIFs play as they are. Set <b>Show during</b> to <i>Programmes only</i> to hide the logo during breaks.</p>
+
+    <h2 id="apps">IPTV apps</h2>
+    <p>Add these two URLs to your app (replace <code>your-pc</code> with this PC's address):</p>
+<pre><code>http://your-pc:8420/iptv/channels.m3u
+http://your-pc:8420/iptv/xmltv.xml</code></pre>
+    <ul>
+      <li><b>Jellyfin:</b> <i>Dashboard → Live TV → Tuner devices → M3U Tuner</i>, then add the XMLTV guide under <i>TV guide data providers</i>.</li>
+      <li><b>TiVimate, Kodi</b> (IPTV Simple Client), <b>VLC</b> and other M3U players work the same way.</li>
+    </ul>
+
+    <h2 id="plex-tv">Plex Live TV</h2>
+    <p>Plex doesn't accept M3U playlists, so tvmanager also acts as an <b>HDHomeRun network tuner</b>:</p>
+    <ol class="steps-list">
+      <li>In Plex, open <b>Settings → Live TV &amp; DVR → Set up Plex DVR</b>.</li>
+      <li>If tvmanager isn't listed, choose <b>enter its network address manually</b> and enter <code>http://your-pc:8420</code>.</li>
+      <li>For the guide, choose the <b>XMLTV</b> option and enter <code>http://your-pc:8420/iptv/xmltv.xml</code>.</li>
+      <li>Plex matches each channel to its guide entry by number. Check the matches and finish.</li>
+    </ol>
+    <p>The tuner advertises 4 simultaneous streams by default (<code>server.tuners</code>). Tested with Plex Media Server 1.43.</p>
+
+    <h2 id="browser">In a browser</h2>
+    <p>Anyone on your network can watch at <code>http://your-pc:8420/watch</code>, with no app and no sign-in:</p>
+    <ul>
+      <li><b>Channel grid:</b> what's on now, with progress, and what's next.</li>
+      <li><b>Player:</b> live video, a now/next panel, the upcoming guide and a channel list. <kbd>↑</kbd> <kbd>↓</kbd> change channel, <kbd>M</kbd> mutes, <kbd>F</kbd> goes fullscreen.</li>
+    </ul>
+    <p>It works in Chrome, Edge and Firefox (desktop and Android), and in Safari on iPhone and iPad using HLS. Browsers start videos muted until you tap to unmute. To turn the page off, set <code>"server": { "publicWatch": false }</code>.</p>
+
+    <h2 id="hls">HLS</h2>
+    <p>Every channel is also available as HLS at <code>/hls/&lt;number&gt;/index.m3u8</code>, and <code>/iptv/channels.m3u?format=hls</code> is a playlist that uses those URLs. The first request starts a segmenter that copies the channel's stream into 4-second segments without re-encoding (the first playlist takes a few seconds). It stops about 45 seconds after the last request.</p>
+
+    <h2 id="encoding">Encoding</h2>
+    <p>Under <b>Settings → Encoding</b>, tvmanager runs a short test encode with each encoder to show what works on your PC and how fast:</p>
+    <table>
+      <tr><th>Encoder</th><th>Hardware</th></tr>
+      <tr><td>Software (x264)</td><td>Any CPU.</td></tr>
+      <tr><td>NVIDIA (NVENC)</td><td>GeForce, RTX and Quadro graphics cards.</td></tr>
+      <tr><td>Intel (Quick Sync)</td><td>Intel CPUs with integrated graphics, and Arc cards.</td></tr>
+      <tr><td>AMD (AMF)</td><td>Radeon graphics cards and Ryzen APUs.</td></tr>
+    </table>
+    <p>You also set the resolution (480p, 720p or 1080p), frame rate, and video and audio bitrates. Changes apply to each channel the next time it starts, so a stream in progress is never interrupted. A graphics card encoder takes the load off the CPU, so more channels can run at once.</p>
+
+    <h2 id="users">Users and security</h2>
+    <ul>
+      <li><b>What needs a sign-in:</b> the dashboard and its API. The playlist, guide, streams, HLS, the Plex tuner and the browser TV page stay open, because TV apps can't sign in. Anyone who can reach port 8420 can watch, so don't expose it to the internet unless you mean to.</li>
+      <li><b>Settings:</b> change your password (this signs out your other devices), add or remove users, and sign out other devices.</li>
+      <li><b>Under the hood:</b> passwords are hashed with scrypt. Sessions are HttpOnly, SameSite cookies that last 30 days and renew while in use. Changes require a custom request header (CSRF protection). Sign-in locks for 15 minutes after 10 failed attempts.</li>
+      <li><b>Where credentials live:</b> <code>data/auth.json</code>, never <code>config.json</code>.</li>
+    </ul>
+    <h3>Locked out</h3>
+    <p>On the tvmanager PC, run this. It prints a new password and signs that user out everywhere. Restart tvmanager afterwards.</p>
+<pre><code>npm run reset-password -- &lt;username&gt;</code></pre>
+
+    <h2 id="config">Configuration reference</h2>
+    <p>Everything you set in the dashboard is saved to <code>config.json</code>. These settings are only available in the file. Restart after changing them.</p>
+    <table>
+      <tr><th>Setting</th><th>Default</th><th>What it does</th></tr>
+      <tr><td><code>server.port</code></td><td>8420</td><td>Port for the dashboard, streams and tuner.</td></tr>
+      <tr><td><code>server.publicUrl</code></td><td>request host</td><td>Base URL written into playlists, e.g. behind a reverse proxy.</td></tr>
+      <tr><td><code>server.idleSeconds</code></td><td>20</td><td>Keep a channel's encoder running this long after the last viewer leaves.</td></tr>
+      <tr><td><code>server.tuners</code></td><td>4</td><td>Simultaneous streams the Plex tuner advertises.</td></tr>
+      <tr><td><code>server.tunerName</code></td><td>tvmanager</td><td>Name Plex shows for the tuner.</td></tr>
+      <tr><td><code>server.publicWatch</code></td><td>true</td><td>The public browser TV page at <code>/watch</code>.</td></tr>
+      <tr><td><code>ffmpeg.ffmpeg</code>, <code>ffmpeg.ffprobe</code></td><td>on PATH</td><td>Full paths if they're not on your PATH.</td></tr>
+      <tr><td><code>ffmpeg.font</code>, <code>fontBold</code>, <code>fontMono</code></td><td>Windows Arial, Arial Bold, Consolas Bold</td><td>Fonts for graphics. On Linux or macOS, point these at e.g. DejaVu Sans.</td></tr>
+      <tr><td><code>playoutHours</code></td><td>48</td><td>How far ahead schedules are planned.</td></tr>
+      <tr><td><code>scanIntervalMinutes</code></td><td>360</td><td>How often sources are rescanned automatically.</td></tr>
+    </table>
+    <p>Encoder, resolution, frame rate and bitrates are in the file too (<code>ffmpeg.videoEncoder</code>, <code>width</code>, <code>height</code>, <code>fps</code>, <code>videoBitrate</code>, <code>audioBitrate</code>), but they're easier to set under <a href="#encoding">Settings → Encoding</a>.</p>
+
+    <h2 id="endpoints">Endpoints</h2>
+    <table>
+      <tr><th>URL</th><th>Access</th><th>What it is</th></tr>
+      <tr><td><code>/</code></td><td>sign-in</td><td>Dashboard</td></tr>
+      <tr><td><code>/iptv/channels.m3u</code></td><td>open</td><td>Channel playlist (<code>?format=hls</code> for HLS URLs)</td></tr>
+      <tr><td><code>/iptv/xmltv.xml</code></td><td>open</td><td>TV guide</td></tr>
+      <tr><td><code>/stream/&lt;number&gt;.ts</code></td><td>open</td><td>Live MPEG-TS stream</td></tr>
+      <tr><td><code>/hls/&lt;number&gt;/index.m3u8</code></td><td>open</td><td>Live HLS stream</td></tr>
+      <tr><td><code>/discover.json</code>, <code>/lineup.json</code></td><td>open</td><td>HDHomeRun tuner for Plex</td></tr>
+      <tr><td><code>/watch</code>, <code>/watch/&lt;number&gt;</code></td><td>open</td><td>Browser TV page</td></tr>
+      <tr><td><code>/api/...</code></td><td>signed in</td><td>Dashboard API</td></tr>
+    </table>
+
+    <h2 id="updating">Updating</h2>
+<pre><code>git pull
+npm install
+npm start</code></pre>
+    <p>Your <code>config.json</code> and <code>data/</code> folder are kept. Release notes are on the <a href="https://github.com/weareleon/tvmanager/releases">releases page</a>.</p>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <h3>"ffmpeg not found" in the log</h3>
+    <p>Install a full ffmpeg build and add it to your PATH, or set <code>"ffmpeg": { "ffmpeg": "C:/ffmpeg/bin/ffmpeg.exe", "ffprobe": "C:/ffmpeg/bin/ffprobe.exe" }</code> in <code>config.json</code>.</p>
+    <h3>A source shows "the server rejected the API key"</h3>
+    <p>The key was deleted or mistyped. For Plex, click <b>Sign in again</b> in the source's editor.</p>
+    <h3>A collection has 0 items</h3>
+    <p>Check its filters in the preview, and that the source finished scanning (see its card under <b>Media sources</b>).</p>
+    <h3>Graphics or slate text don't appear</h3>
+    <p>Your ffmpeg build lacks <code>drawtext</code>, or the font files don't exist. Use a "full" ffmpeg build and check the font paths in the <a href="#config">configuration</a>.</p>
+    <h3>Other devices can't connect</h3>
+    <p>Use this PC's network address rather than <code>localhost</code>, and allow port 8420 through the firewall.</p>
+    <h3>Stuttering with several channels at once</h3>
+    <p>Switch to a graphics card encoder under <b>Settings → Encoding</b>, or lower the resolution.</p>
+    <p>Still stuck? <a href="https://github.com/weareleon/tvmanager/issues">Open an issue</a> with the server log.</p>
+  </article>
+</div>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="./"><span class="dot"></span>tvmanager</a>
+    <span>Free and open source, MIT licensed.</span>
+    <nav><a href="./">Home</a><a href="https://github.com/weareleon/tvmanager">GitHub</a><a href="https://github.com/weareleon/tvmanager/issues">Issues</a></nav>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+</body>
+</html>
