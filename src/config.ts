@@ -197,7 +197,22 @@ const mediaServer = <T extends "jellyfin" | "emby">(type: T) =>
 const JellyfinSource = mediaServer("jellyfin");
 const EmbySource = mediaServer("emby");
 
-const Source = z.discriminatedUnion("type", [LocalSource, JellyfinSource, EmbySource]);
+const PlexSource = z.object({
+  type: z.literal("plex"),
+  id: z.string(),
+  /** The address tvmanager reaches the Plex server at, e.g. http://127.0.0.1:32400 */
+  url: z.string().url(),
+  /** Token for this server, from "Sign in with Plex". */
+  token: z.string().min(1),
+  /** Shown in the dashboard. */
+  serverName: z.string().optional(),
+  machineId: z.string().optional(),
+  libraries: z.array(z.string()).optional(),
+  playback: z.enum(["auto", "file", "stream"]).default("auto"),
+  pathReplacements: z.array(z.object({ from: z.string(), to: z.string() })).default([]),
+});
+
+const Source = z.discriminatedUnion("type", [LocalSource, JellyfinSource, EmbySource, PlexSource]);
 
 const Collection = z.object({
   id: z.string(),
@@ -271,6 +286,7 @@ export type ContentCfg = z.infer<typeof Content>;
 export type CollectionCfg = z.infer<typeof Collection>;
 export type SourceCfg = z.infer<typeof Source>;
 export type MediaServerSourceCfg = z.infer<typeof JellyfinSource> | z.infer<typeof EmbySource>;
+export type PlexSourceCfg = z.infer<typeof PlexSource>;
 export type FfmpegCfg = z.infer<typeof Ffmpeg>;
 export type WatermarkCfg = z.infer<typeof Watermark>;
 export type GraphicCfg = z.infer<typeof Graphic>;

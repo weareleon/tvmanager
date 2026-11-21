@@ -1,6 +1,6 @@
 {
   "name": "tvmanager",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "license": "MIT",
   "description": "Turn your Jellyfin, Emby or local media into live TV channels, with ad breaks, animated broadcast graphics and day-and-time scheduling.",

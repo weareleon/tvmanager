@@ -11,7 +11,7 @@ const dlg = $("#dlg");
 const DAYS = [["mon", "Mon"], ["tue", "Tue"], ["wed", "Wed"], ["thu", "Thu"], ["fri", "Fri"], ["sat", "Sat"], ["sun", "Sun"]];
 const ALL_DAYS = DAYS.map((d) => d[0]);
 const COLORS = ["#6aa5ff", "#a97cff", "#3fcf8e", "#f2b33d", "#ff7eb6", "#4fd1d9", "#ff8f5a", "#b5e35b"];
-const TYPE_LABEL = { jellyfin: "Jellyfin", emby: "Emby", local: "Local" };
+const TYPE_LABEL = { jellyfin: "Jellyfin", emby: "Emby", plex: "Plex", local: "Local" };
 const KIND_LABEL = { movie: "Movies", episode: "Episodes", other: "Other videos" };
 
 async function api(method, url, body, raw) {
@@ -1233,7 +1233,7 @@ async function pageSources() {
       if (st.scanning) status = `<div class="status scanning"><span class="dot"></span>Scanning…</div>`;
       else if (st.error) status = `<div class="status err"><span class="dot"></span>${esc(st.error)}</div>`;
       else status = `<div class="status"><span class="dot"></span>${st.items.toLocaleString()} items${st.lastScan ? ` · scanned ${ago(st.lastScan)}` : ""}</div>`;
-      const detail = s.type === "local" ? s.paths.map(esc).join("<br>") : `${esc(s.url)}${s.libraries ? ` · ${s.libraries.map(esc).join(", ")}` : " · all video libraries"}`;
+      const detail = s.type === "local" ? s.paths.map(esc).join("<br>") : `${s.serverName ? `${esc(s.serverName)} · ` : ""}${esc(s.url)}${s.libraries ? ` · ${s.libraries.map(esc).join(", ")}` : " · all video libraries"}`;
       const used = s.usedBy.length
         ? `<div class="chips">${s.usedBy.map((c) => `<span class="chip">${esc(c.id)} · ${c.items}</span>`).join("")}</div>`
         : `<div class="muted small">Not used by any collection yet</div>`;
@@ -1280,14 +1280,21 @@ function openSourceEditor(src, onSaved) {
     <form method="dialog" novalidate>
       <div class="dlg-head"><h2>${editing ? `Edit ${esc(src.id)}` : "Add source"}</h2><button type="button" class="ghost" data-close>✕</button></div>
       <div class="dlg-body">
-        <div class="seg" id="type-seg" style="display:grid;grid-template-columns:repeat(3,1fr)">
-          ${["jellyfin", "emby", "local"].map((t) => `<button type="button" data-type="${t}" ${editing ? "disabled" : ""}>${t === "local" ? "Local folders" : TYPE_LABEL[t]}</button>`).join("")}
+        <div class="seg" id="type-seg" style="display:grid;grid-template-columns:repeat(4,1fr)">
+          ${["jellyfin", "emby", "plex", "local"].map((t) => `<button type="button" data-type="${t}" ${editing ? "disabled" : ""}>${t === "local" ? "Local folders" : TYPE_LABEL[t]}</button>`).join("")}
         </div>
         <label class="field">Name <input type="text" name="id" autocomplete="off" value="${esc(src?.id ?? "jellyfin")}" ${editing ? "disabled" : ""}>
           <span class="hint">Used to refer to this source in collections. Letters, numbers, - and _.</span></label>
         <div data-for="server" class="stack">
-          <label class="field">Server URL <input type="url" name="url" value="${esc(src?.url ?? "http://localhost:8096")}"></label>
-          <label class="field">API key <input type="password" name="apiKey" autocomplete="off" placeholder="${src?.hasApiKey ? "•••••••• (saved)" : ""}"><span class="hint" id="key-hint"></span></label>
+          <div data-for="jf" class="stack">
+            <label class="field">Server URL <input type="url" name="url" value="${esc(src?.type !== "plex" && src?.url ? src.url : "http://localhost:8096")}"></label>
+            <label class="field">API key <input type="password" name="apiKey" autocomplete="off" placeholder="${src?.hasApiKey ? "•••••••• (saved)" : ""}"><span class="hint" id="key-hint"></span></label>
+          </div>
+          <div data-for="plex" class="stack">
+            <div id="plex-current">${src?.type === "plex" ? `<div class="test-result ok">Connected to <b>${esc(src.serverName || "Plex")}</b> <span class="muted">at ${esc(src.url)}</span></div>` : `<div class="hint">tvmanager uses Plex's own sign-in: you approve it on plex.tv, and your Plex password never touches tvmanager.</div>`}</div>
+            <div><button type="button" id="plex-signin" class="${src?.type === "plex" ? "" : "primary"}">${src?.type === "plex" ? "Sign in again / change server" : "Sign in with Plex"}</button></div>
+            <div id="plex-servers"></div>
+          </div>
           <div><button type="button" id="test-btn">Test connection</button></div>
           <div id="test-result" hidden></div>
           <details><summary>Advanced</summary><div class="stack">
@@ -1297,7 +1304,7 @@ function openSourceEditor(src, onSaved) {
               <option value="stream">Always stream from the server</option></select></label>
             <label class="field">Path replacements <textarea name="pathReplacements" placeholder="/media => \\\\nas\\media">${esc((src?.pathReplacements ?? []).map((r) => `${r.from} => ${r.to}`).join("\n"))}</textarea>
               <span class="hint">One per line, <code>server path =&gt; path on this PC</code>. Needed when the server runs in Docker or on another machine.</span></label>
-            <label class="field">User ID <input type="text" name="userId" value="${esc(src?.userId ?? "")}" placeholder="First administrator"></label>
+            <label class="field" data-for="jf">User ID <input type="text" name="userId" value="${esc(src?.userId ?? "")}" placeholder="First administrator"></label>
           </div></details>
         </div>
         <div data-for="local"><label class="field">Folders
@@ -1310,15 +1317,81 @@ function openSourceEditor(src, onSaved) {
   const form = $("form", dlg);
   if (src?.playback) form.playback.value = src.playback;
 
+  // Plex sign-in state: the finished sign-in's id (the token stays on the server) and the chosen server.
+  let plexSignIn = null;
+  let plexMachine = src?.machineId ?? null;
+  let pollTimer = null;
+
   const setType = (t) => {
     type = t;
     $$("#type-seg button").forEach((b) => b.classList.toggle("on", b.dataset.type === t));
     $('[data-for="server"]', dlg).hidden = t === "local";
     $('[data-for="local"]', dlg).hidden = t !== "local";
+    $$('[data-for="jf"]', dlg).forEach((el) => (el.hidden = t === "plex"));
+    $('[data-for="plex"]', dlg).hidden = t !== "plex";
     $("#test-btn").textContent = t === "local" ? "Check folders" : "Test connection";
+    $("#test-btn").hidden = t === "plex" && !editing && !plexSignIn;
     $("#key-hint").innerHTML = src?.hasApiKey ? "A key is saved. Leave blank to keep it."
       : t === "emby" ? "In Emby: <b>Settings → Advanced → API Keys</b>." : "In Jellyfin: <b>Dashboard → API Keys → +</b>, name it tvmanager.";
-    if (!editing && ["jellyfin", "emby", "local", "media"].includes(form.id.value)) form.id.value = t === "local" ? "media" : t;
+    if (!editing && ["jellyfin", "emby", "plex", "local", "media"].includes(form.id.value)) form.id.value = t === "local" ? "media" : t;
+  };
+
+  const renderServers = (servers) => {
+    const reachable = servers.filter((s) => s.reachable);
+    if (!plexMachine || !reachable.some((s) => s.machineId === plexMachine)) plexMachine = reachable[0]?.machineId ?? null;
+    $("#plex-servers").innerHTML = servers.length
+      ? `<div class="field" style="font-weight:500">Server</div><div class="checklist">${servers.map((s) => `
+          <label><input type="radio" name="plexsrv" value="${esc(s.machineId)}" ${s.machineId === plexMachine ? "checked" : ""} ${s.reachable ? "" : "disabled"}>
+            <span><b>${esc(s.name)}</b>${s.owned ? "" : ` <span class="chip">shared</span>`}<br><span class="hint">${s.reachable ? esc(s.url) : "Not reachable from this PC"}</span></span></label>`).join("")}</div>`
+      : `<div class="test-result bad">This Plex account has no servers.</div>`;
+  };
+
+  const startPlexSignIn = async (btn) => {
+    // Open the window straight away (inside the click), or pop-up blockers stop it.
+    const popup = window.open("", "plex-signin", "width=520,height=720");
+    btn.disabled = true;
+    btn.textContent = "Waiting for Plex…";
+    $("#plex-servers").innerHTML = `<div class="hint">Approve tvmanager in the Plex window that opened. <a href="#" id="plex-reopen">Open it again</a></div>`;
+    try {
+      const r = await api("POST", "/api/plex/signin");
+      if (popup) popup.location.href = r.authUrl;
+      $("#plex-reopen").onclick = (ev) => { ev.preventDefault(); window.open(r.authUrl, "plex-signin", "width=520,height=720"); };
+      const started = Date.now();
+      const poll = async () => {
+        if (!dlg.open) return;
+        try {
+          const st = await api("GET", `/api/plex/signin/${encodeURIComponent(r.signIn)}`);
+          if (!st.done) {
+            if (Date.now() - started > 10 * 60_000) throw new Error("Sign-in timed out. Try again.");
+            pollTimer = setTimeout(poll, 2000);
+            return;
+          }
+          try { popup?.close(); } catch { /* not ours to close */ }
+          plexSignIn = r.signIn;
+          renderServers(st.servers);
+          $("#plex-current").innerHTML = `<div class="test-result ok">Signed in to Plex. Pick a server below.</div>`;
+          btn.disabled = false;
+          btn.textContent = "Sign in again";
+          btn.classList.remove("primary");
+          $("#test-btn").hidden = false;
+          if (plexMachine) $("#test-btn").click();
+        } catch (ex) {
+          $("#plex-servers").innerHTML = `<div class="test-result bad">${esc(ex.message)}</div>`;
+          btn.disabled = false;
+          btn.textContent = "Sign in with Plex";
+        }
+      };
+      poll();
+    } catch (ex) {
+      try { popup?.close(); } catch { /* ignore */ }
+      $("#plex-servers").innerHTML = `<div class="test-result bad">${esc(ex.message)}</div>`;
+      btn.disabled = false;
+      btn.textContent = "Sign in with Plex";
+    }
+  };
+  dlg.addEventListener("close", () => clearTimeout(pollTimer), { once: true });
+  dlg.onchange = (e) => {
+    if (e.target.name === "plexsrv") { plexMachine = e.target.value; tested = null; $("#test-result").hidden = true; $("#test-btn").click(); }
   };
 
   const body = () => {
@@ -1327,7 +1400,8 @@ function openSourceEditor(src, onSaved) {
       b.paths = form.paths.value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
       return b;
     }
-    Object.assign(b, { url: form.url.value.trim(), apiKey: form.apiKey.value.trim(), userId: form.userId.value.trim(), playback: form.playback.value });
+    if (type === "plex") Object.assign(b, { signIn: plexSignIn ?? undefined, machineId: plexMachine ?? undefined, playback: form.playback.value });
+    else Object.assign(b, { url: form.url.value.trim(), apiKey: form.apiKey.value.trim(), userId: form.userId.value.trim(), playback: form.playback.value });
     b.pathReplacements = form.pathReplacements.value.split(/\r?\n/).map((l) => l.split("=>").map((x) => x.trim())).filter((p) => p.length === 2 && p[0] && p[1]).map(([from, to]) => ({ from, to }));
     if (tested) {
       const picked = $$("#test-result input[type=checkbox]:checked", dlg).map((x) => x.value);
@@ -1344,6 +1418,7 @@ function openSourceEditor(src, onSaved) {
     if (!b) return;
     if (b.hasAttribute("data-close")) return dlg.close();
     if (b.dataset.type && !editing) { setType(b.dataset.type); tested = null; $("#test-result").hidden = true; return; }
+    if (b.id === "plex-signin") return startPlexSignIn(b);
     if (b.id === "test-btn") {
       const box = $("#test-result");
       const label = b.textContent;
@@ -1378,8 +1453,13 @@ function openSourceEditor(src, onSaved) {
     err.hidden = true;
     const fail = (m) => { err.textContent = m; err.hidden = false; };
     if (!b.id) return fail("Give the source a name.");
-    if (type !== "local" && !b.url) return fail("Enter the server URL.");
-    if (type !== "local" && !b.apiKey && !src?.hasApiKey) return fail("Enter the API key.");
+    if (type === "plex") {
+      if (!editing && !plexSignIn) return fail("Sign in with Plex first.");
+      if (plexSignIn && !plexMachine) return fail("Pick a server that tvmanager can reach.");
+    } else {
+      if (type !== "local" && !b.url) return fail("Enter the server URL.");
+      if (type !== "local" && !b.apiKey && !src?.hasApiKey) return fail("Enter the API key.");
+    }
     try {
       await api("PUT", `/api/sources/${encodeURIComponent(b.id)}${editing ? "" : "?create=1"}`, b);
       dlg.close();
@@ -1390,7 +1470,7 @@ function openSourceEditor(src, onSaved) {
 
   setType(type);
   dlg.showModal();
-  (editing ? (type === "local" ? form.paths : form.apiKey) : form.apiKey).focus();
+  (editing ? (type === "local" ? form.paths : type === "plex" ? form.playback : form.apiKey) : form.apiKey).focus();
 }
 
 /* ================= sign-in ================= */

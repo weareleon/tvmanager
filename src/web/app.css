@@ -46,7 +46,7 @@ button:disabled { opacity: .55; cursor: default; }
 .chip { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--panel-2); color: var(--muted); white-space: nowrap; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--border); }
-.badge.jellyfin { color: #a97cff; } .badge.emby { color: #52b54b; } .badge.local { color: var(--warn); }
+.badge.jellyfin { color: #a97cff; } .badge.emby { color: #52b54b; } .badge.plex { color: #e5a00d; } .badge.local { color: var(--warn); }
 .empty { padding: 48px 24px; text-align: center; color: var(--muted); }
 .empty h3 { color: var(--text); margin: 0 0 6px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; display: inline-block; }

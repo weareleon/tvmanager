@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- **Plex as a media source:** "Sign in with Plex" in the dashboard (Plex's PIN flow, so you never copy a token), then pick a server and libraries.
+  - **Imports** movies and TV episodes with season and episode numbers, genres (taken from the show) and chapter markers for mid-roll breaks.
+  - **Connection:** tvmanager uses the first of the server's addresses that answers: this PC, then the local network, then remote, then Plex's relay.
+  - **Playback:** files are read directly when this PC can reach them, otherwise the original file is streamed from Plex without transcoding. Path replacements and playback mode work as for Jellyfin.
+  - **Token safety:** Plex tokens stay on the server. They never reach the browser and are redacted from logs.
+- **Plex Live TV verified:** the HDHomeRun tuner from 1.1.0 has now been tested with Plex Media Server 1.43.5. Plex adds it as a 4-tuner device, maps every channel to the XMLTV guide by number, and plays channels in Plex Web.
+
 ## 1.2.0
 
 - **Watch in the browser:** a public TV page at `/watch` with a channel grid (now with progress, and next), and a live player at `/watch/<number>`:

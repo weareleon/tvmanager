@@ -120,7 +120,7 @@ export class MediaServerClient {
     return p;
   }
 
-  async scan(): Promise<MediaItem[]> {
+  async scan(_previous: MediaItem[] = []): Promise<MediaItem[]> {
     const userId = await this.userId();
     const libs = await this.libraries();
     const items: MediaItem[] = [];

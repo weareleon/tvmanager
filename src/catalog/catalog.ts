@@ -3,6 +3,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import type { CollectionCfg, Config } from "../config";
 import { log, normPath } from "../util";
 import { MediaServerClient } from "../sources/jellyfin";
+import { PlexClient, plexClientId } from "../sources/plex";
 import { scanLocal } from "../sources/local";
 
 export interface MediaItem {
@@ -48,7 +49,7 @@ export interface SourceStatus {
 export class Catalog {
   private items = new Map<string, MediaItem>();
   private collectionCache = new Map<string, MediaItem[]>();
-  private servers = new Map<string, MediaServerClient>();
+  private servers = new Map<string, MediaServerClient | PlexClient>();
   private scans = new Map<string, Promise<void>>();
   private status = new Map<string, SourceStatus>();
   private file: string;
@@ -65,7 +66,10 @@ export class Catalog {
   /** Call after sources change: rebuilds server clients and drops items of removed sources. */
   reloadSources(): void {
     this.servers.clear();
-    for (const s of this.cfg.sources) if (s.type === "jellyfin" || s.type === "emby") this.servers.set(s.id, new MediaServerClient(s));
+    for (const s of this.cfg.sources) {
+      if (s.type === "jellyfin" || s.type === "emby") this.servers.set(s.id, new MediaServerClient(s));
+      if (s.type === "plex") this.servers.set(s.id, new PlexClient(s, plexClientId(this.cfg.dataDir)));
+    }
     const ids = new Set(this.cfg.sources.map((s) => s.id));
     let removed = 0;
     for (const [id, it] of this.items) {
@@ -130,7 +134,7 @@ export class Catalog {
     const previous = [...this.items.values()].filter((i) => i.sourceId === source.id);
     let found: MediaItem[];
     try {
-      found = source.type === "local" ? await scanLocal(source, previous, this.cfg.ffmpeg.ffprobe) : await this.servers.get(source.id)!.scan();
+      found = source.type === "local" ? await scanLocal(source, previous, this.cfg.ffmpeg.ffprobe) : await this.servers.get(source.id)!.scan(previous);
     } catch (e) {
       // Server down or misconfigured: keep what we had so channels keep running.
       const msg = (e as Error).message === "fetch failed" ? "could not reach the server" : (e as Error).message;
@@ -152,7 +156,8 @@ export class Catalog {
 
   /** Local paths play as-is; media-server references become authenticated stream URLs. */
   resolveInput(path: string): string {
-    const m = path.match(/^(jellyfin|emby):\/\/([^/]+)\/(.+)$/);
+    // jellyfin://<source>/<itemId>, emby://…, or plex://<source>/library/parts/<…>/file.ext
+    const m = path.match(/^(jellyfin|emby|plex):\/\/([^/]+)\/(.+)$/);
     if (!m) return path;
     const server = this.servers.get(m[2]);
     if (!server) throw new Error(`media source "${m[2]}" is no longer configured`);

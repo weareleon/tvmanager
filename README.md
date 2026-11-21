@@ -1,6 +1,6 @@
 # tvmanager
 
-**Turn your media library into real live TV channels.** Point tvmanager at Jellyfin, Emby or a folder of videos, build channels in a web dashboard, and watch them in Plex (as an HDHomeRun tuner), Jellyfin, TiVimate, VLC or any IPTV player that reads M3U and XMLTV. It has the things that make it feel like broadcast TV: commercial breaks, "Up next" cards, animated on-screen graphics, countdowns to special events, and schedules down to the day and minute.
+**Turn your media library into real live TV channels.** Point tvmanager at Plex, Jellyfin, Emby or a folder of videos, build channels in a web dashboard, and watch them in Plex (as an HDHomeRun tuner), Jellyfin, TiVimate, VLC or any IPTV player that reads M3U and XMLTV. It has the things that make it feel like broadcast TV: commercial breaks, "Up next" cards, animated on-screen graphics, countdowns to special events, and schedules down to the day and minute.
 
 Inspired by [ErsatzTV](https://github.com/ErsatzTV/ErsatzTV), with more control over how channels look and when things air. Not affiliated with it.
 
@@ -26,6 +26,7 @@ Inspired by [ErsatzTV](https://github.com/ErsatzTV/ErsatzTV), with more control 
 - Each channel has its own **accent colour**, and the dashboard shows a live animated preview.
 
 **Sources**
+- **Plex:** "Sign in with Plex" (no tokens to copy), then pick a server and libraries. Titles, episodes, genres and chapters come from Plex.
 - **Jellyfin and Emby:** titles, episodes, genres and chapters come from the server. Files are read directly when this PC can reach them, otherwise streamed from the server in original quality.
 - **Local folders:** scanned with ffprobe, with `Show - S01E02 - Title` names parsed.
 - **Collections:** filter by library, show, genre, type, folder or path text, with a live preview.
@@ -110,10 +111,11 @@ Everything you set in the dashboard is saved to `config.json`. You rarely need t
 
 Restart after changing these. Everything else applies immediately.
 
-### Jellyfin / Emby notes
+### Plex, Jellyfin and Emby notes
 
 - **Docker or a NAS:** if the server sees files at different paths than this PC (e.g. `/media/...` in Docker), add **path replacements** under *Advanced* (`/media => \\nas\media`), or set playback to *Always stream from the server*.
-- **API keys** are only placed in stream URLs at play time. They're redacted from logs and never written to `data/`.
+- **API keys and Plex tokens** are only placed in stream URLs at play time. They never reach the browser, are redacted from logs, and are never written to `data/`.
+- **Plex sign-in** uses Plex's PIN flow: you approve tvmanager on plex.tv, and tvmanager connects to the first address of your server that answers (this PC, then your network, then remote, then Plex's relay).
 
 ### Locked out
 
@@ -154,7 +156,6 @@ sources → catalog → schedule rules → playout timeline (saved) → channel 
 
 ## Roadmap
 
-- **Plex** as a media source
 - **HLS output** and hardware-encoder presets in the dashboard
 - More graphic types and templates
 
